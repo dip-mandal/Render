@@ -11,23 +11,24 @@
             padding: 30px;
         }
         .card {
-            max-width: 600px;
+            max-width: 720px;
             margin: auto;
             background: #020617;
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.25);
         }
         h1 {
             text-align: center;
             color: #38bdf8;
         }
-        .status {
+        .status-ok {
             color: #22c55e;
             font-weight: bold;
         }
-        .error {
+        .status-error {
             color: #ef4444;
+            font-weight: bold;
         }
         ul {
             padding-left: 20px;
@@ -38,19 +39,79 @@
             font-size: 14px;
             color: #94a3b8;
         }
+        .section {
+            margin-top: 15px;
+        }
+        a {
+            color: #38bdf8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .badge {
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-left: 6px;
+        }
+        .badge-ok {
+            background: #14532d;
+            color: #22c55e;
+        }
+        .badge-error {
+            background: #7f1d1d;
+            color: #ef4444;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>🚀 meiXuP Backend Status</h1>
+    <h1>🚀 meiXuP Backend Monitor</h1>
 
-    <p><strong>Status:</strong> <span id="status">Loading...</span></p>
-    <p><strong>Version:</strong> <span id="version">--</span></p>
-    <p><strong>Firebase:</strong> <span id="firebase">--</span></p>
+    <!-- BASE ENDPOINT -->
+    <div class="section">
+        <p><strong>Base Endpoint (/):</strong>
+            <span id="baseStatus">Loading...</span>
+        </p>
+        <p><strong>Base Version:</strong> <span id="baseVersion">--</span></p>
+    </div>
 
-    <p><strong>Services:</strong></p>
-    <ul id="services"></ul>
+    <!-- HEALTH STATUS -->
+    <div class="section">
+        <p><strong>Health Status:</strong>
+            <span id="healthStatus">Loading...</span>
+        </p>
+        <p><strong>Service:</strong> <span id="service">--</span></p>
+        <p><strong>Environment:</strong> <span id="environment">--</span></p>
+    </div>
+
+    <!-- RUNTIME -->
+    <div class="section">
+        <p><strong>Runtime:</strong></p>
+        <ul>
+            <li>Python: <span id="python">--</span></li>
+            <li>Platform: <span id="platform">--</span></li>
+            <li>Uptime: <span id="uptime">--</span> seconds</li>
+        </ul>
+    </div>
+
+    <!-- DEPENDENCIES -->
+    <div class="section">
+        <p><strong>Dependencies:</strong></p>
+        <ul>
+            <li>Firebase: <span id="firebase">--</span></li>
+        </ul>
+    </div>
+
+    <!-- DOCS -->
+    <div class="section">
+        <p><strong>API Docs:</strong>
+            <a id="docsLink" href="#" target="_blank">/docs</a>
+            <span id="docsStatus" class="badge">--</span>
+        </p>
+    </div>
 
     <div class="time">
         Last Ping: <span id="time">Never</span>
@@ -58,44 +119,74 @@
 </div>
 
 <script>
-    const API_URL = "https://meixup-backend.onrender.com/";
+    const BASE_URL = "https://meixup-backend.onrender.com";
+    const ROOT_URL = `${BASE_URL}/`;
+    const HEALTH_URL = `${BASE_URL}/health`;
+    const DOCS_URL = `${BASE_URL}/docs`;
     const INTERVAL = 5 * 60 * 1000; // 5 minutes
 
-    async function pingServer() {
+    async function pingBase() {
         try {
-            const response = await fetch(API_URL);
-            const data = await response.json();
+            const res = await fetch(ROOT_URL);
+            const data = await res.json();
 
-            document.getElementById("status").innerText = data.status;
-            document.getElementById("status").className = "status";
-
-            document.getElementById("version").innerText = data.version;
-            document.getElementById("firebase").innerText = data.firebase_status;
-
-            const servicesList = document.getElementById("services");
-            servicesList.innerHTML = "";
-
-            data.services.forEach(service => {
-                const li = document.createElement("li");
-                li.innerText = service;
-                servicesList.appendChild(li);
-            });
-
-            document.getElementById("time").innerText = new Date().toLocaleString();
-
-            console.log("Ping success", data);
-        } catch (error) {
-            document.getElementById("status").innerText = "Backend Offline";
-            document.getElementById("status").className = "error";
-            console.error("Ping failed", error);
+            document.getElementById("baseStatus").innerText = "Online";
+            document.getElementById("baseStatus").className = "status-ok";
+            document.getElementById("baseVersion").innerText = data.version;
+        } catch {
+            document.getElementById("baseStatus").innerText = "Offline";
+            document.getElementById("baseStatus").className = "status-error";
         }
     }
 
-    // Run immediately
-    pingServer();
+    async function pingHealth() {
+        try {
+            const res = await fetch(HEALTH_URL);
+            const data = await res.json();
 
-    // Repeat
-    setInterval(pingServer, INTERVAL);
+            document.getElementById("healthStatus").innerText = data.status;
+            document.getElementById("healthStatus").className = "status-ok";
+
+            document.getElementById("service").innerText = data.service.name;
+            document.getElementById("environment").innerText = data.service.environment;
+
+            document.getElementById("python").innerText = data.runtime.python_version;
+            document.getElementById("platform").innerText = data.runtime.platform;
+            document.getElementById("uptime").innerText = data.runtime.uptime_seconds;
+
+            document.getElementById("firebase").innerText =
+                data.dependencies.firebase_initialized ? "Initialized ✅" : "Not Ready ❌";
+
+            document.getElementById("time").innerText = new Date().toLocaleString();
+        } catch {
+            document.getElementById("healthStatus").innerText = "Offline";
+            document.getElementById("healthStatus").className = "status-error";
+        }
+    }
+
+    async function checkDocs() {
+        try {
+            const res = await fetch(DOCS_URL, { method: "HEAD" });
+            document.getElementById("docsLink").href = DOCS_URL;
+
+            const badge = document.getElementById("docsStatus");
+            badge.innerText = res.ok ? "AVAILABLE" : "DOWN";
+            badge.className = res.ok ? "badge badge-ok" : "badge badge-error";
+        } catch {
+            const badge = document.getElementById("docsStatus");
+            badge.innerText = "DOWN";
+            badge.className = "badge badge-error";
+        }
+    }
+
+    function runMonitor() {
+        pingBase();
+        pingHealth();
+        checkDocs();
+    }
+
+    runMonitor();
+    setInterval(runMonitor, INTERVAL);
 </script>
 
 </body>
