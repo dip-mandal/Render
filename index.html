@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Backend Keep Alive</title>
+</head>
+<body>
+    <h2>🔄 Backend Keep Alive Running...</h2>
+    <p>Last Ping: <span id="time">Never</span></p>
+
+    <script>
+        const API_URL = "https://meixup-backend.onrender.com/";
+        const INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+        async function pingServer() {
+            try {
+                const response = await fetch(API_URL);
+                document.getElementById("time").innerText = new Date().toLocaleTimeString();
+                console.log("Ping success:", response.status);
+            } catch (error) {
+                console.error("Ping failed:", error);
+            }
+        }
+
+        // Ping immediately on load
+        pingServer();
+
+        // Ping repeatedly
+        setInterval(pingServer, INTERVAL);
+    </script>
+</body>
+</html>
