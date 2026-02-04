@@ -2,31 +2,101 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Backend Keep Alive</title>
+    <title>meiXuP Backend Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: #e5e7eb;
+            padding: 30px;
+        }
+        .card {
+            max-width: 600px;
+            margin: auto;
+            background: #020617;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #38bdf8;
+        }
+        .status {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .error {
+            color: #ef4444;
+        }
+        ul {
+            padding-left: 20px;
+        }
+        .time {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #94a3b8;
+        }
+    </style>
 </head>
 <body>
-    <h2>🔄 Backend Keep Alive Running...</h2>
-    <p>Last Ping: <span id="time">Never</span></p>
 
-    <script>
-        const API_URL = "https://meixup-backend.onrender.com/";
-        const INTERVAL = 5 * 60 * 1000; // 5 minutes
+<div class="card">
+    <h1>🚀 meiXuP Backend Status</h1>
 
-        async function pingServer() {
-            try {
-                const response = await fetch(API_URL);
-                document.getElementById("time").innerText = new Date().toLocaleTimeString();
-                console.log("Ping success:", response.status);
-            } catch (error) {
-                console.error("Ping failed:", error);
-            }
+    <p><strong>Status:</strong> <span id="status">Loading...</span></p>
+    <p><strong>Version:</strong> <span id="version">--</span></p>
+    <p><strong>Firebase:</strong> <span id="firebase">--</span></p>
+
+    <p><strong>Services:</strong></p>
+    <ul id="services"></ul>
+
+    <div class="time">
+        Last Ping: <span id="time">Never</span>
+    </div>
+</div>
+
+<script>
+    const API_URL = "https://meixup-backend.onrender.com/";
+    const INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+    async function pingServer() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+
+            document.getElementById("status").innerText = data.status;
+            document.getElementById("status").className = "status";
+
+            document.getElementById("version").innerText = data.version;
+            document.getElementById("firebase").innerText = data.firebase_status;
+
+            const servicesList = document.getElementById("services");
+            servicesList.innerHTML = "";
+
+            data.services.forEach(service => {
+                const li = document.createElement("li");
+                li.innerText = service;
+                servicesList.appendChild(li);
+            });
+
+            document.getElementById("time").innerText = new Date().toLocaleString();
+
+            console.log("Ping success", data);
+        } catch (error) {
+            document.getElementById("status").innerText = "Backend Offline";
+            document.getElementById("status").className = "error";
+            console.error("Ping failed", error);
         }
+    }
 
-        // Ping immediately on load
-        pingServer();
+    // Run immediately
+    pingServer();
 
-        // Ping repeatedly
-        setInterval(pingServer, INTERVAL);
-    </script>
+    // Repeat
+    setInterval(pingServer, INTERVAL);
+</script>
+
 </body>
 </html>
